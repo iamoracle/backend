@@ -1,11 +1,11 @@
 <?php
 
-namespace App\Http\Requests;
+namespace App\Http\Dtos\User;
 
 use Illuminate\Foundation\Http\FormRequest;
 use App\Rules\EmailValidationRule;
 
-class RegisterUserRequest extends FormRequest
+class RegisterUserDto extends FormRequest
 {
     public function authorize(): bool
     {
@@ -15,7 +15,7 @@ class RegisterUserRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'email' => ['required', 'string', 'max:255', new EmailValidationRule(), 'unique:users,email'],
+            'email' => ['required', 'string', 'max:255', 'email', new EmailValidationRule(), 'unique:users,email'],
             'password' => 'required|string|min:8',
         ];
     }

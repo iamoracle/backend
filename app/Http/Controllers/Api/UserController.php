@@ -3,36 +3,95 @@
 namespace App\Http\Controllers\Api;
 
 use App\Aggregates\UserAggregate;
-use App\Enums\RoleKey;
-use App\Models\User;
 use App\Http\Controllers\Controller;
-use Illuminate\Support\Facades\Hash;
-use App\Http\Requests\RegisterUserRequest;
+use App\Http\Dtos\User\RegisterUserDto;
+use App\Http\Dtos\User\LoginUserDto;
 use App\Http\Resources\UserResource;
+use App\Models\User;
+use Illuminate\Support\Facades\Hash;
 use Ramsey\Uuid\Uuid;
-
-use function Laravel\Prompts\password;
 
 class UserController extends Controller
 {
-    // User registration
-    public function register(RegisterUserRequest $request)
+
+    /**
+     * User registration through the event-sourced aggregate
+     */
+    public function register(RegisterUserDto $request)
     {
-        // Generate the aggregate ID (UUID)
+        $data = $request->validated();
+
         $userId = Uuid::uuid4()->toString();
 
-        // Apply domain events
         UserAggregate::retrieve($userId)
             ->createUser(
                 id: $userId,
-                email: $request->email,
-                password: Hash::make($request->password),
+                email: $data['email'],
+                password: Hash::make($data['password']),
             )
             ->persist();
 
-        // Retrieve the read model after projection
         $user = User::findOrFail($userId);
 
         return new UserResource($user);
+    }
+
+    /**
+     * Login using JWT
+     */
+    public function login(LoginUserDto $request)
+    {
+        $credentials = $request->only("email", "password");
+
+
+        if (! $token = auth()->attempt($credentials)) {
+            return response()->json([
+                'error' => 'Unauthorized',
+            ], 401);
+        }
+
+        return $this->respondWithToken($token);
+    }
+
+    /**
+     * Authenticated user profile
+     */
+    public function me()
+    {
+        return new UserResource(auth()->user());
+    }
+
+    /**
+     * Invalidate (logout) current JWT
+     */
+    public function logout()
+    {
+        auth()->logout();
+
+        return response()->json([
+            'message' => 'Successfully logged out',
+        ]);
+    }
+
+    /**
+     * Refresh token
+     */
+    public function refresh()
+    {
+        return $this->respondWithToken(auth()->refresh());
+    }
+
+    /**
+     * Standard JWT token response structure
+     */
+    protected function respondWithToken(string $token)
+    {
+        return response()->json([
+            'data' => [
+                'accessToken' => $token,
+                'tokenType'   => 'bearer',
+                'expiresIn'   => auth()->factory()->getTTL() * 60,
+            ]
+        ]);
     }
 }

@@ -6,8 +6,6 @@ use App\Domain\User\Events\UserCreated;
 use App\Domain\User\Events\UserDeleted;
 use App\Domain\User\Events\UserEmailVerified;
 use App\Domain\User\Events\UserPasswordChanged;
-use DateTime;
-use Ramsey\Uuid\Uuid;
 use Spatie\EventSourcing\AggregateRoots\AggregateRoot;
 
 class UserAggregate extends AggregateRoot
@@ -20,7 +18,6 @@ class UserAggregate extends AggregateRoot
                 'password' => $password,
                 'id' => $id,
             ],
-            createdAt: new DateTime(),
         ));
 
         return $this;
@@ -31,7 +28,6 @@ class UserAggregate extends AggregateRoot
         $this->recordThat(new UserPasswordChanged(
             userId: $userId,
             password: $password,
-            createdAt: new DateTime(),
         ));
 
         return $this;
@@ -41,7 +37,6 @@ class UserAggregate extends AggregateRoot
     {
         $this->recordThat(new UserEmailVerified(
             userId: $userId,
-            createdAt: new DateTime(),
         ));
 
         return $this;
@@ -52,7 +47,6 @@ class UserAggregate extends AggregateRoot
     {
         $this->recordThat(new UserDeleted(
             userId: $userId,
-            createdAt: new DateTime(),
         ));
 
         return $this;
